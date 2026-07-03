@@ -2,14 +2,25 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/syncscore';
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('MONGO_URI environment variable is missing.');
+      }
+      console.warn('MONGO_URI is not set. Falling back to local default.');
+    }
+    const connectionString = mongoUri || 'mongodb://localhost:27017/syncscore';
     console.log('Connecting to MongoDB...');
-    const conn = await mongoose.connect(mongoUri, {
+    const conn = await mongoose.connect(connectionString, {
       serverSelectionTimeoutMS: 5000 // fail fast if Atlas isn't available
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`Error connecting to MongoDB Atlas / Local URI: ${error.message}`);
+    console.error(`Error connecting to MongoDB: ${error.message}`);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Fallback database options are disabled in production.');
+      throw error;
+    }
     console.log('Attempting fallback to In-Memory MongoDB Server...');
     try {
       const { MongoMemoryServer } = require('mongodb-memory-server');

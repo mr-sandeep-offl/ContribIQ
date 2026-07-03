@@ -9,7 +9,9 @@ const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 dotenv.config();
 
 // Connect to database
-connectDB();
+connectDB().catch((err) => {
+  console.error('CRITICAL ERROR: Failed to connect to database on startup:', err.message);
+});
 
 const app = express();
 
