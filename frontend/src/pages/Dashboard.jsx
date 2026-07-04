@@ -1,74 +1,112 @@
 import React, { useState, useEffect } from 'react';
 import { getProjects } from '../api/projectApi';
-import { getProjectAnalytics } from '../api/analyticsApi';
+import { getWorkspaceSummary } from '../api/analyticsApi';
 import StatCard from '../components/common/StatCard';
 import ProjectCard from '../components/projects/ProjectCard';
 import Navbar from '../components/layout/Navbar';
 import Sidebar from '../components/layout/Sidebar';
 import EmptyState from '../components/common/EmptyState';
-import { Folder, Heart, ShieldAlert, CheckCircle, Plus } from 'lucide-react';
+import { Folder, Heart, ShieldAlert, CheckCircle, Plus, RefreshCw } from 'lucide-react';
 import Button from '../components/common/Button';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
-  const [analytics, setAnalytics] = useState({});
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const fetchDashboardData = async () => {
+    try {
+      const [projectList, summaryData] = await Promise.all([
+        getProjects(),
+        getWorkspaceSummary()
+      ]);
+      setProjects(projectList);
+      setSummary(summaryData);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to fetch dashboard data. Make sure backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const projectList = await getProjects();
-        setProjects(projectList);
-
-        // Fetch analytics for each project in parallel
-        const analyticsPromises = projectList.map(async (project) => {
-          try {
-            const data = await getProjectAnalytics(project._id);
-            return { projectId: project._id, data };
-          } catch (err) {
-            console.error(`Error loading analytics for project ${project._id}:`, err);
-            return { projectId: project._id, data: null };
-          }
-        });
-
-        const analyticsResults = await Promise.all(analyticsPromises);
-        const analyticsMap = {};
-        analyticsResults.forEach((res) => {
-          if (res.data) analyticsMap[res.projectId] = res.data;
-        });
-        setAnalytics(analyticsMap);
-      } catch (err) {
-        setError('Failed to fetch dashboard data. Make sure backend is running.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
 
+  const handleRetry = () => {
+    setLoading(true);
+    setError('');
+    fetchDashboardData();
+  };
+
   // Compute aggregated statistics
-  const totalProjects = projects.length;
-  const activeProjects = projects.filter((p) => p.status === 'active').length;
-
-  const healthScores = Object.values(analytics).map((a) => a.healthScore);
-  const averageHealthScore = healthScores.length > 0 
-    ? Math.round(healthScores.reduce((sum, s) => sum + s, 0) / healthScores.length)
-    : 100;
-
-  const highRiskProjectsCount = Object.values(analytics).filter(
-    (a) => a.deadlineRisk === 'high'
-  ).length;
+  const { totalProjects, activeProjects, averageHealthScore, highRiskProjectsCount } = React.useMemo(() => {
+    return {
+      totalProjects: summary?.totalProjects || 0,
+      activeProjects: projects.filter((p) => p.status === 'active').length,
+      averageHealthScore: summary?.averageHealthScore ?? 100,
+      highRiskProjectsCount: summary?.highRiskProjectsCount || 0
+    };
+  }, [summary, projects]);
 
   if (loading) {
     return (
-      <div className="flex h-screen flex-col bg-gray-950 text-white">
+      <div className="flex flex-col min-h-screen bg-gray-950 text-white">
         <Navbar />
-        <div className="flex flex-1 items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full text-left">
+            {/* Header Skeleton */}
+            <div className="flex items-center justify-between mb-8 animate-pulse">
+              <div>
+                <div className="h-7 bg-gray-800 rounded w-48 mb-2"></div>
+                <div className="h-4 bg-gray-800 rounded w-80"></div>
+              </div>
+              <div className="h-10 bg-gray-800 rounded w-36"></div>
+            </div>
+
+            {/* Stat Cards Skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-pulse">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-28 bg-gray-900 border border-gray-850 rounded-xl p-5">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="h-4 bg-gray-800 rounded w-24"></div>
+                    <div className="h-8 w-8 bg-gray-800 rounded-lg"></div>
+                  </div>
+                  <div className="h-6 bg-gray-800 rounded w-16 mb-2"></div>
+                  <div className="h-3 bg-gray-850 rounded w-32"></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Recent Projects Title Skeleton */}
+            <div className="h-6 bg-gray-800 rounded w-44 mb-4 animate-pulse"></div>
+
+            {/* Project Cards Grid Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-56 bg-gray-900 border border-gray-850 rounded-xl p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="h-5 bg-gray-800 rounded w-32"></div>
+                    <div className="h-5 bg-gray-800 rounded w-16"></div>
+                  </div>
+                  <div className="space-y-2 mb-6">
+                    <div className="h-4 bg-gray-800 rounded w-full"></div>
+                    <div className="h-4 bg-gray-800 rounded w-5/6"></div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-850 flex justify-between">
+                    <div className="h-3 bg-gray-800 rounded w-20"></div>
+                    <div className="h-3 bg-gray-800 rounded w-16"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </main>
         </div>
       </div>
     );
@@ -92,12 +130,19 @@ const Dashboard = () => {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-450 text-sm">
-              {error}
+            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-450 text-sm flex items-center justify-between">
+              <span>{error}</span>
+              <button 
+                onClick={handleRetry} 
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 transition-colors text-xs font-semibold text-rose-300"
+              >
+                <RefreshCw size={12} />
+                Retry
+              </button>
             </div>
           )}
 
-          {totalProjects === 0 ? (
+          {totalProjects === 0 && !error ? (
             <EmptyState
               title="No projects found"
               description="Create a project to start logging task shares, contributions, and generating AI summaries."

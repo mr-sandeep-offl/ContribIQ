@@ -3,7 +3,7 @@ import Badge from '../common/Badge';
 import { Calendar, User, Trash2, Edit2 } from 'lucide-react';
 import { formatDate } from '../../utils/formatDate';
 
-const TaskCard = ({ task, onEdit, onDelete, canModify }) => {
+const TaskCard = ({ task, onEdit, onDelete, canModify, onDetailsClick }) => {
   const priorityVariants = {
     low: 'secondary',
     medium: 'info',
@@ -19,7 +19,10 @@ const TaskCard = ({ task, onEdit, onDelete, canModify }) => {
   };
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-5 flex flex-col justify-between h-48 text-left">
+    <div 
+      onClick={onDetailsClick}
+      className={`rounded-xl border border-gray-800 bg-gray-900/60 p-5 flex flex-col justify-between h-48 text-left ${onDetailsClick ? 'cursor-pointer hover:border-gray-700 hover:shadow-md transition-all' : ''}`}
+    >
       <div>
         <div className="flex items-center justify-between gap-2">
           <Badge variant={priorityVariants[task.priority] || 'default'}>
@@ -48,13 +51,13 @@ const TaskCard = ({ task, onEdit, onDelete, canModify }) => {
         {canModify && (
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => onEdit(task)} 
+              onClick={(e) => { e.stopPropagation(); onEdit(task); }} 
               className="text-gray-400 hover:text-indigo-400 p-1 rounded transition-colors"
             >
               <Edit2 size={13} />
             </button>
             <button 
-              onClick={() => onDelete(task._id)} 
+              onClick={(e) => { e.stopPropagation(); onDelete(task._id); }} 
               className="text-gray-400 hover:text-rose-500 p-1 rounded transition-colors"
             >
               <Trash2 size={13} />

@@ -42,6 +42,78 @@ const TaskSchema = new mongoose.Schema(
     completedAt: {
       type: Date,
     },
+    comments: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        text: {
+          type: String,
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    attachments: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        url: {
+          type: String,
+          required: true,
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    labels: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    dependencies: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Task',
+      },
+    ],
+    estimatedHours: {
+      type: Number,
+      default: 0,
+    },
+    actualHours: {
+      type: Number,
+      default: 0,
+    },
+    history: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        action: {
+          type: String,
+          required: true,
+        },
+        field: String,
+        oldValue: String,
+        newValue: String,
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

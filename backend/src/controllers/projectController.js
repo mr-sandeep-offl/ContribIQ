@@ -2,6 +2,8 @@ const Project = require('../models/Project');
 const User = require('../models/User');
 const Task = require('../models/Task');
 const Contribution = require('../models/Contribution');
+const Activity = require('../models/Activity');
+const Notification = require('../models/Notification');
 const calculateProjectAnalytics = require('../utils/calculateAnalytics');
 const generateAISummary = require('../utils/generateAISummary');
 
@@ -193,6 +195,21 @@ const addMember = async (req, res, next) => {
 
     await project.save();
 
+    // Log Activity
+    await Activity.create({
+      projectId: project._id,
+      userId: req.user._id,
+      type: 'member_join',
+      content: `Added ${userToAdd.name} to the project as a ${role || 'member'}`,
+    });
+
+    // Notify user
+    await Notification.create({
+      userId: userToAdd._id,
+      projectId: project._id,
+      message: `You have been added to the project "${project.title}" as a ${role || 'member'}.`,
+    });
+
     const updatedProject = await Project.findById(req.params.id)
       .populate('createdBy', 'name email')
       .populate('members.user', 'name email role');
@@ -246,6 +263,24 @@ const removeMember = async (req, res, next) => {
 
     await project.save();
 
+    const removedUser = await User.findById(memberIdToRemove);
+    const removedName = removedUser ? removedUser.name : 'Unknown member';
+
+    // Log Activity
+    await Activity.create({
+      projectId: project._id,
+      userId: req.user._id,
+      type: 'member_leave',
+      content: `Removed ${removedName} from the project`,
+    });
+
+    // Notify user
+    await Notification.create({
+      userId: memberIdToRemove,
+      projectId: project._id,
+      message: `You have been removed from the project "${project.title}".`,
+    });
+
     const updatedProject = await Project.findById(req.params.id)
       .populate('createdBy', 'name email')
       .populate('members.user', 'name email role');
@@ -296,6 +331,69 @@ const generateProjectAISummary = async (req, res, next) => {
   }
 };
 
+// @desc    Update project member role
+// @route   PUT /api/projects/:id/members/:userId
+// @access  Private
+const updateMemberRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+    if (!role) {
+      res.status(400);
+      return next(new Error('Please provide project role'));
+    }
+
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      res.status(404);
+      return next(new Error('Project not found'));
+    }
+
+    // Only owner (creator) can change roles
+    if (project.createdBy.toString() !== req.user._id.toString()) {
+      res.status(403);
+      return next(new Error('Only the project owner can update member roles'));
+    }
+
+    const memberIndex = project.members.findIndex(
+      (m) => m.user.toString() === req.params.userId
+    );
+
+    if (memberIndex === -1) {
+      res.status(404);
+      return next(new Error('User is not a member of this project'));
+    }
+
+    const oldRole = project.members[memberIndex].projectRole;
+    project.members[memberIndex].projectRole = role;
+    await project.save();
+
+    const updatedProject = await Project.findById(req.params.id)
+      .populate('createdBy', 'name email')
+      .populate('members.user', 'name email role');
+
+    const updatedUser = updatedProject.members[memberIndex].user;
+
+    // Log Activity
+    await Activity.create({
+      projectId: project._id,
+      userId: req.user._id,
+      type: 'member_role_update',
+      content: `Changed role of ${updatedUser.name} to ${role} (was ${oldRole})`,
+    });
+
+    // Create Notification for the updated user
+    await Notification.create({
+      userId: req.params.userId,
+      projectId: project._id,
+      message: `Your role in project "${project.title}" has been updated to ${role}.`,
+    });
+
+    res.json(updatedProject);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createProject,
   getProjects,
@@ -304,5 +402,6 @@ module.exports = {
   deleteProject,
   addMember,
   removeMember,
+  updateMemberRole,
   generateProjectAISummary,
 };

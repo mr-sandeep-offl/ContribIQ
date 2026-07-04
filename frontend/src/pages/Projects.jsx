@@ -7,7 +7,7 @@ import EmptyState from '../components/common/EmptyState';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import Input from '../components/common/Input';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -25,17 +25,28 @@ const Projects = () => {
 
   const fetchProjects = async () => {
     try {
+      setLoading(true);
       const data = await getProjects();
       setProjects(data);
+      setError('');
     } catch (err) {
-      setError('Failed to fetch projects.');
+      setError('Failed to fetch projects. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleRetry = () => {
+    fetchProjects();
+  };
+
   useEffect(() => {
     fetchProjects();
+    const queryParams = new URLSearchParams(window.location.search);
+    if (queryParams.get('create') === 'true') {
+      setModalOpen(true);
+      window.history.replaceState(null, '', '/projects');
+    }
   }, []);
 
   const handleCreateProject = async (e) => {
@@ -89,8 +100,15 @@ const Projects = () => {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-450 text-sm">
-              {error}
+            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-450 text-sm flex items-center justify-between">
+              <span>{error}</span>
+              <button 
+                onClick={handleRetry} 
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 transition-colors text-xs font-semibold text-rose-300"
+              >
+                <RefreshCw size={12} />
+                Retry
+              </button>
             </div>
           )}
 
