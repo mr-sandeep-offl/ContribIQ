@@ -7,13 +7,27 @@ const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 // Load environment variables
 dotenv.config();
-
-// Connect to database
-connectDB().catch((err) => {
+// Start initial connection (non-blocking for module load)
+let dbConnectionPromise = connectDB().catch((err) => {
   console.error('CRITICAL ERROR: Failed to connect to database on startup:', err.message);
 });
 
 const app = express();
+
+// Middleware: ensure DB is connected before handling any request (critical for serverless)
+app.use(async (req, res, next) => {
+  try {
+    await dbConnectionPromise;
+    // If connection was lost, reconnect
+    if (require('mongoose').connection.readyState !== 1) {
+      dbConnectionPromise = connectDB();
+      await dbConnectionPromise;
+    }
+    next();
+  } catch (err) {
+    res.status(503).json({ message: 'Database connection unavailable. Please try again shortly.' });
+  }
+});
 
 const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
