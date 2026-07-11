@@ -109,5 +109,4 @@ Both frontend and backend are optimized with `vercel.json` configurations to dep
 
 ---
 
-## 📝 License
-Distributed under the MIT License. Built with ❤️ for sprint teams and students.
+
