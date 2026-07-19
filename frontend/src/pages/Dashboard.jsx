@@ -1,96 +1,88 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getProjects } from '../api/projectApi';
-import { getProjectAnalytics } from '../api/analyticsApi';
+import { getWorkspaceSummary } from '../api/analyticsApi';
 import StatCard from '../components/common/StatCard';
 import ProjectCard from '../components/projects/ProjectCard';
 import Navbar from '../components/layout/Navbar';
 import Sidebar from '../components/layout/Sidebar';
 import EmptyState from '../components/common/EmptyState';
-import { Folder, Heart, ShieldAlert, CheckCircle, Plus, TrendingUp, AlertCircle } from 'lucide-react';
+import { Folder, Heart, ShieldAlert, CheckCircle, Plus, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import Button from '../components/common/Button';
 import { useNavigate } from 'react-router-dom';
 
 // Skeleton loader for stat cards
 const StatSkeleton = () => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card animate-pulse">
     <div className="flex items-center justify-between mb-3">
-      <div className="skeleton h-3 w-24 rounded" />
-      <div className="skeleton h-9 w-9 rounded-xl" />
+      <div className="h-3 bg-slate-200 rounded w-24" />
+      <div className="h-8 w-8 bg-slate-200 rounded-lg" />
     </div>
-    <div className="skeleton h-8 w-16 rounded mt-2 mb-1" />
-    <div className="skeleton h-2.5 w-28 rounded" />
+    <div className="h-6 bg-slate-200 rounded w-16 mb-2" />
+    <div className="h-3 bg-slate-200 rounded w-32" />
   </div>
 );
 
 // Skeleton loader for project cards
 const CardSkeleton = () => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card min-h-[200px] flex flex-col justify-between">
+  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card min-h-[200px] flex flex-col justify-between animate-pulse">
     <div>
       <div className="flex justify-between mb-3">
-        <div className="skeleton h-4 w-36 rounded" />
-        <div className="skeleton h-5 w-16 rounded-full" />
+        <div className="h-4 bg-slate-200 rounded w-36" />
+        <div className="h-5 bg-slate-200 rounded-full w-16" />
       </div>
-      <div className="skeleton h-3 w-full rounded mt-2 mb-1" />
-      <div className="skeleton h-3 w-3/4 rounded" />
+      <div className="h-3 bg-slate-200 rounded w-full mt-2 mb-1" />
+      <div className="h-3 bg-slate-200 rounded w-3/4" />
     </div>
     <div className="pt-4 border-t border-slate-100 flex gap-3">
-      <div className="skeleton h-3 w-20 rounded" />
-      <div className="skeleton h-3 w-16 rounded" />
+      <div className="h-3 bg-slate-200 rounded w-20" />
+      <div className="h-3 bg-slate-200 rounded w-16" />
     </div>
   </div>
 );
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
-  const [analytics, setAnalytics] = useState({});
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const fetchDashboardData = async () => {
+    try {
+      const [projectList, summaryData] = await Promise.all([
+        getProjects(),
+        getWorkspaceSummary()
+      ]);
+      setProjects(projectList);
+      setSummary(summaryData);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to fetch dashboard data. Make sure backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const projectList = await getProjects();
-        setProjects(projectList);
-
-        const analyticsPromises = projectList.map(async (project) => {
-          try {
-            const data = await getProjectAnalytics(project._id);
-            return { projectId: project._id, data };
-          } catch {
-            return { projectId: project._id, data: null };
-          }
-        });
-
-        const analyticsResults = await Promise.all(analyticsPromises);
-        const analyticsMap = {};
-        analyticsResults.forEach((res) => {
-          if (res.data) analyticsMap[res.projectId] = res.data;
-        });
-        setAnalytics(analyticsMap);
-      } catch {
-        setError('Failed to fetch dashboard data. Make sure backend is running.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
 
+  const handleRetry = () => {
+    setLoading(true);
+    setError('');
+    fetchDashboardData();
+  };
+
+  // Compute aggregated statistics
   const stats = useMemo(() => {
-    const totalProjects = projects.length;
-    const activeProjects = projects.filter((p) => p.status === 'active').length;
-    const healthScores = Object.values(analytics).map((a) => a.healthScore);
-    const averageHealthScore =
-      healthScores.length > 0
-        ? Math.round(healthScores.reduce((sum, s) => sum + s, 0) / healthScores.length)
-        : 100;
-    const highRiskProjectsCount = Object.values(analytics).filter(
-      (a) => a.deadlineRisk === 'high'
-    ).length;
-    return { totalProjects, activeProjects, averageHealthScore, highRiskProjectsCount };
-  }, [projects, analytics]);
+    return {
+      totalProjects: summary?.totalProjects || 0,
+      activeProjects: projects.filter((p) => p.status === 'active').length,
+      averageHealthScore: summary?.averageHealthScore ?? 100,
+      highRiskProjectsCount: summary?.highRiskProjectsCount || 0
+    };
+  }, [summary, projects]);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900">
@@ -119,9 +111,18 @@ const Dashboard = () => {
           </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-              <AlertCircle size={16} className="shrink-0" />
-              {error}
+            <div className="mb-6 flex items-center justify-between p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button 
+                onClick={handleRetry} 
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 transition-colors text-xs font-semibold text-red-700"
+              >
+                <RefreshCw size={12} />
+                Retry
+              </button>
             </div>
           )}
 
@@ -130,9 +131,9 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
                 {[...Array(4)].map((_, i) => <StatSkeleton key={i} />)}
               </div>
-              <div className="skeleton h-5 w-36 rounded mb-4" />
+              <div className="h-5 bg-slate-200 rounded w-36 mb-4 animate-pulse" />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
+                {[...Array(3)].map((_, i) => <CardSkeleton key={i} />)}
               </div>
             </>
           ) : projects.length === 0 ? (

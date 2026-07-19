@@ -34,3 +34,13 @@ export const removeMember = async (projectId, userId) => {
   const response = await axiosInstance.delete(`/projects/${projectId}/members/${userId}`);
   return response.data;
 };
+
+export const updateMemberRole = async (projectId, userId, roleData) => {
+  const response = await axiosInstance.put(`/projects/${projectId}/members/${userId}`, roleData);
+  return response.data;
+};
+
+export const getProjectActivities = async (projectId) => {
+  const response = await axiosInstance.get(`/projects/${projectId}/activities`);
+  return response.data;
+};

@@ -3,7 +3,7 @@ import Badge from '../common/Badge';
 import { Calendar, User, Trash2, Edit2 } from 'lucide-react';
 import { formatDate } from '../../utils/formatDate';
 
-const TaskCard = memo(({ task, onEdit, onDelete, canModify }) => {
+const TaskCard = memo(({ task, onEdit, onDelete, canModify, onDetailsClick }) => {
   const priorityVariants = {
     low:      'secondary',
     medium:   'info',
@@ -21,7 +21,12 @@ const TaskCard = memo(({ task, onEdit, onDelete, canModify }) => {
   const sc = statusConfig[task.status] || { label: task.status, cls: 'bg-slate-100 text-slate-600' };
 
   return (
-    <div className="card-hover rounded-2xl border border-slate-200 bg-white p-5 flex flex-col justify-between min-h-[180px] text-left shadow-card">
+    <div 
+      onClick={onDetailsClick}
+      className={`card-hover rounded-2xl border border-slate-200 bg-white p-5 flex flex-col justify-between min-h-[180px] text-left shadow-card ${
+        onDetailsClick ? 'cursor-pointer hover:border-slate-300' : ''
+      }`}
+    >
       <div>
         <div className="flex items-center justify-between gap-2 mb-3">
           <Badge variant={priorityVariants[task.priority] || 'default'}>
@@ -52,13 +57,13 @@ const TaskCard = memo(({ task, onEdit, onDelete, canModify }) => {
         {canModify && (
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => onEdit(task)}
+              onClick={(e) => { e.stopPropagation(); onEdit(task); }}
               className="p-1.5 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
             >
               <Edit2 size={12} />
             </button>
             <button
-              onClick={() => onDelete(task._id)}
+              onClick={(e) => { e.stopPropagation(); onDelete(task._id); }}
               className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors"
             >
               <Trash2 size={12} />

@@ -7,7 +7,7 @@ import EmptyState from '../components/common/EmptyState';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import Input from '../components/common/Input';
-import { Plus, AlertCircle, FolderOpen } from 'lucide-react';
+import { Plus, AlertCircle, FolderOpen, RefreshCw } from 'lucide-react';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -24,17 +24,28 @@ const Projects = () => {
 
   const fetchProjects = async () => {
     try {
+      setLoading(true);
       const data = await getProjects();
       setProjects(data);
-    } catch {
-      setError('Failed to fetch projects.');
+      setError('');
+    } catch (err) {
+      setError('Failed to fetch projects. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleRetry = () => {
+    fetchProjects();
+  };
+
   useEffect(() => {
     fetchProjects();
+    const queryParams = new URLSearchParams(window.location.search);
+    if (queryParams.get('create') === 'true') {
+      setModalOpen(true);
+      window.history.replaceState(null, '', '/projects');
+    }
   }, []);
 
   const handleCreateProject = async (e) => {
@@ -102,9 +113,18 @@ const Projects = () => {
           </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-2 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-              <AlertCircle size={15} className="shrink-0" />
-              {error}
+            <div className="mb-6 flex items-center justify-between p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={15} className="shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button 
+                onClick={handleRetry} 
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 transition-colors text-xs font-semibold text-red-700"
+              >
+                <RefreshCw size={12} />
+                Retry
+              </button>
             </div>
           )}
 

@@ -8,8 +8,10 @@ const {
   deleteProject,
   addMember,
   removeMember,
+  updateMemberRole,
   generateProjectAISummary,
 } = require('../controllers/projectController');
+const { getProjectActivities } = require('../controllers/activityController');
 const { createTask, getTasksByProject } = require('../controllers/taskController');
 const {
   addContribution,
@@ -49,6 +51,7 @@ router.route('/:id/members')
   .post(addMember);
 
 router.route('/:id/members/:userId')
+  .put(updateMemberRole)
   .delete(removeMember);
 
 // Task routes under a specific project
@@ -67,6 +70,10 @@ router.route('/:projectId/contributions/summary')
 // Analytics route under a specific project
 router.route('/:projectId/analytics')
   .get(getProjectAnalytics);
+
+// Activities route under a specific project
+router.route('/:projectId/activities')
+  .get(getProjectActivities);
 
 // ── GitHub routes under a specific project ────────────────
 router.route('/:projectId/github/status')

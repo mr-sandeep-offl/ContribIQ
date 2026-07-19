@@ -7,17 +7,34 @@ const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 // Load environment variables
 dotenv.config();
-
-// Connect to database
-connectDB();
+// Start initial connection (non-blocking for module load)
+let dbConnectionPromise = connectDB().catch((err) => {
+  console.error('CRITICAL ERROR: Failed to connect to database on startup:', err.message);
+});
 
 const app = express();
+
+// Middleware: ensure DB is connected before handling any request (critical for serverless)
+app.use(async (req, res, next) => {
+  try {
+    await dbConnectionPromise;
+    // If connection was lost, reconnect
+    if (require('mongoose').connection.readyState !== 1) {
+      dbConnectionPromise = connectDB();
+      await dbConnectionPromise;
+    }
+    next();
+  } catch (err) {
+    res.status(503).json({ message: 'Database connection unavailable. Please try again shortly.' });
+  }
+});
 
 const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const userRoutes = require('./routes/userRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 
 // Security and standard middlewares
@@ -32,6 +49,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai', aiRoutes);
 
 // Health check route
