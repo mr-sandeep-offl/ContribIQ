@@ -49,7 +49,29 @@ const aiRoutes = require('./routes/aiRoutes');
 
 // Security and standard middlewares
 app.use(helmet());
-app.use(cors());
+
+const allowedOrigins = [
+  'https://contrib-iq.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      const isAllowed = allowedOrigins.includes(origin) || 
+                        origin.startsWith('http://localhost:') || 
+                        origin.endsWith('.vercel.app');
+      if (isAllowed) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -62,14 +84,30 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai', aiRoutes);
 
+// Safe root landing route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'ContribIQ API is running',
+  });
+});
+
+// Safe API landing route
+app.get('/api', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'ContribIQ API is running',
+  });
+});
+
 // Health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({
-    status: 'UP',
-    timestamp: new Date(),
-    environment: process.env.NODE_ENV || 'development',
+    status: 'ok',
+    service: 'ContribIQ API',
   });
 });
+
 
 // Error handling middleware
 app.use(notFound);
