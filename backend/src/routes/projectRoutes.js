@@ -17,7 +17,17 @@ const {
   getContributionsSummary,
 } = require('../controllers/contributionController');
 const { getProjectAnalytics } = require('../controllers/analyticsController');
-const { importMockContributions, getGitHubStatus } = require('../controllers/githubController');
+const {
+  getGitHubStatus,
+  getRepository,
+  getCommits,
+  getContributors,
+  getBranches,
+  getPullRequests,
+  getIssues,
+  syncGitHubCommits,
+  importMockContributions,  // legacy alias kept for backward compat
+} = require('../controllers/githubController');
 const { protect } = require('../middleware/authMiddleware');
 
 // All routes require authentication
@@ -58,11 +68,33 @@ router.route('/:projectId/contributions/summary')
 router.route('/:projectId/analytics')
   .get(getProjectAnalytics);
 
-// GitHub routes under a specific project
-router.route('/:projectId/github/import')
-  .post(importMockContributions);
-
+// ── GitHub routes under a specific project ────────────────
 router.route('/:projectId/github/status')
   .get(getGitHubStatus);
+
+router.route('/:projectId/github/repository')
+  .get(getRepository);
+
+router.route('/:projectId/github/commits')
+  .get(getCommits);
+
+router.route('/:projectId/github/contributors')
+  .get(getContributors);
+
+router.route('/:projectId/github/branches')
+  .get(getBranches);
+
+router.route('/:projectId/github/pull-requests')
+  .get(getPullRequests);
+
+router.route('/:projectId/github/issues')
+  .get(getIssues);
+
+router.route('/:projectId/github/sync')
+  .post(syncGitHubCommits);
+
+// Legacy import route (now calls real sync)
+router.route('/:projectId/github/import')
+  .post(importMockContributions);
 
 module.exports = router;

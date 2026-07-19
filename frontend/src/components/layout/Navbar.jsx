@@ -1,40 +1,32 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, User, Cpu } from 'lucide-react';
-import Button from '../common/Button';
+import { User, Zap } from 'lucide-react';
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
-    <nav className="h-16 border-b border-gray-800 bg-gray-900 px-6 flex items-center justify-between sticky top-0 z-40">
-      <div className="flex items-center gap-2">
-        <Cpu className="text-indigo-500" size={24} />
-        <span className="text-xl font-bold tracking-tight text-white">
-          SyncScore <span className="text-indigo-400">AI</span>
+    <nav className="h-16 border-b border-slate-200 bg-white px-6 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+      {/* Brand */}
+      <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-sky-400 shadow-sm">
+          <Zap className="text-white" size={16} />
+        </div>
+        <span className="text-lg font-bold tracking-tight text-slate-900">
+          SyncScore <span className="gradient-text">AI</span>
         </span>
       </div>
-      
+
+      {/* User Info */}
       {user && (
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center text-indigo-400 border border-gray-700">
-              <User size={16} />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-sm font-semibold text-gray-200 leading-none">{user.name}</span>
-              <span className="text-xs text-gray-500 mt-1 capitalize leading-none">{user.role}</span>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex flex-col text-right">
+            <span className="text-sm font-semibold text-slate-800 leading-none">{user.name}</span>
+            <span className="text-xs text-slate-400 mt-0.5 capitalize leading-none">{user.role}</span>
           </div>
-          <div className="h-6 w-px bg-gray-800" />
-          <Button 
-            variant="ghost" 
-            onClick={logout} 
-            className="text-gray-400 hover:text-rose-400 flex items-center gap-1.5 px-2 py-1.5"
-          >
-            <LogOut size={16} />
-            <span className="text-xs">Logout</span>
-          </Button>
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white font-semibold text-sm shadow-sm ring-2 ring-white ring-offset-1">
+            {user.name?.charAt(0)?.toUpperCase() || <User size={14} />}
+          </div>
         </div>
       )}
     </nav>

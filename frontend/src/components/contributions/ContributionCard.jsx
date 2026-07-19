@@ -1,55 +1,57 @@
-import React from 'react';
+import React, { memo } from 'react';
 import Badge from '../common/Badge';
-import { Calendar, GitPullRequest, Award, ShieldAlert } from 'lucide-react';
+import { Calendar, Star } from 'lucide-react';
 import { formatDate } from '../../utils/formatDate';
 
-const ContributionCard = ({ contribution }) => {
+const ContributionCard = memo(({ contribution }) => {
   const sourceVariants = {
-    manual: 'secondary',
-    github: 'default',
-    docs: 'info',
+    manual:  'secondary',
+    github:  'default',
+    docs:    'info',
     meeting: 'warning',
   };
 
-  const getImpactColor = (score) => {
-    if (score >= 8) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25';
-    if (score >= 5) return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/25';
-    return 'text-gray-400 bg-gray-800 border-gray-700';
+  const impactConfig = (score) => {
+    if (score >= 8) return { cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', stars: 3 };
+    if (score >= 5) return { cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200', stars: 2 };
+    return { cls: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200', stars: 1 };
   };
 
+  const ic = impactConfig(contribution.impactScore);
+
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-5 flex flex-col justify-between h-44 text-left">
+    <div className="card-hover rounded-2xl border border-slate-200 bg-white p-5 flex flex-col justify-between min-h-[168px] text-left shadow-card">
       <div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <Badge variant={sourceVariants[contribution.source] || 'secondary'}>
             {contribution.source}
           </Badge>
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Impact:</span>
-            <span className={`text-xs px-1.5 py-0.5 rounded border font-bold ${getImpactColor(contribution.impactScore)}`}>
-              {contribution.impactScore}/10
-            </span>
+          <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${ic.cls}`}>
+            <Star size={10} fill="currentColor" />
+            {contribution.impactScore}/10
           </div>
         </div>
-        <h4 className="mt-3 text-sm font-semibold text-white truncate">{contribution.title}</h4>
-        <p className="mt-1 text-xs text-gray-400 line-clamp-2 leading-relaxed">
+        <h4 className="text-sm font-bold text-slate-900 truncate mb-1">{contribution.title}</h4>
+        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
           {contribution.description}
         </p>
       </div>
 
-      <div className="mt-4 border-t border-gray-800 pt-3 flex items-center justify-between text-xs text-gray-500">
-        <div className="flex items-center gap-1">
-          <Calendar size={13} className="text-gray-650" />
-          <span>{formatDate(contribution.createdAt)}</span>
-        </div>
-        <div className="flex items-center gap-1.5 truncate max-w-[50%]">
-          <span className="text-gray-650 font-semibold capitalize">{contribution.type}</span>
-          <span className="text-gray-750">|</span>
+      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+        <span className="flex items-center gap-1">
+          <Calendar size={11} />
+          {formatDate(contribution.createdAt)}
+        </span>
+        <div className="flex items-center gap-1.5 truncate max-w-[55%]">
+          <span className="font-semibold text-slate-500 capitalize">{contribution.type}</span>
+          <span className="text-slate-300">·</span>
           <span className="truncate">{contribution.userId?.name || 'Unknown'}</span>
         </div>
       </div>
     </div>
   );
-};
+});
+
+ContributionCard.displayName = 'ContributionCard';
 
 export default ContributionCard;
