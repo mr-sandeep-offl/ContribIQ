@@ -7,12 +7,22 @@ const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 // Load environment variables
 dotenv.config();
+
+// Validate required environment variables
+const requiredEnv = ['MONGO_URI', 'JWT_SECRET', 'GROQ_API_KEY'];
+const missingEnv = requiredEnv.filter((env) => !process.env[env]);
+if (missingEnv.length > 0) {
+  console.warn(`[WARNING] Missing environment variables in this environment: ${missingEnv.join(', ')}`);
+  console.warn('Please configure these in your Vercel project environment variables settings.');
+}
+
 // Start initial connection (non-blocking for module load)
 let dbConnectionPromise = connectDB().catch((err) => {
   console.error('CRITICAL ERROR: Failed to connect to database on startup:', err.message);
 });
 
 const app = express();
+
 
 // Middleware: ensure DB is connected before handling any request (critical for serverless)
 app.use(async (req, res, next) => {

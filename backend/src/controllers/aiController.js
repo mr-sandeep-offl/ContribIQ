@@ -201,7 +201,9 @@ const getAIChatResponse = async (req, res, next) => {
         success: true,
         reply,
         provider: 'rule-based',
+        error: groqError.message || 'Groq connection failed.',
       });
+
     }
   } catch (error) {
     next(error);

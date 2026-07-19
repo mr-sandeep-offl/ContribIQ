@@ -129,6 +129,7 @@ const AIChat = () => {
           role: 'assistant',
           content: response.reply,
           provider: response.provider,
+          error: response.error || null,
           timestamp: new Date().toISOString(),
         };
         const finalMessages = [...updatedMessages, newAssistantMessage];
@@ -282,9 +283,16 @@ const AIChat = () => {
 
                         {/* Metadata Footer */}
                         {!isUser && msg.provider && (
-                          <div className="flex items-center gap-1.5 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            <Sparkles size={10} className="text-slate-400" />
-                            Provider: {msg.provider}
+                          <div className="flex flex-col items-start gap-1 px-1">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              <Sparkles size={10} className="text-slate-400" />
+                              Provider: {msg.provider}
+                            </div>
+                            {msg.provider === 'rule-based' && msg.error && (
+                              <div className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md leading-normal text-left">
+                                Note: {msg.error}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
